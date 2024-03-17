@@ -121,7 +121,6 @@ def process_post_data():
     # Проверяем, есть ли токен в теле POST-запроса
     try:
         data = request.json
-
         if 'facebook_token' not in data:
             return jsonify({'error': 'Facebook Token is missing'}), 400  # Возвращаем ошибку, если токен отсутствует
 
