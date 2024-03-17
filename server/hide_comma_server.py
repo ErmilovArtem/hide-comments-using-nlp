@@ -1,4 +1,6 @@
 import logging
+import os
+import sys
 import time
 
 from flask import Flask, request, jsonify
@@ -15,6 +17,8 @@ import json
 file_log = logging.FileHandler('hide_comma_server.log', encoding='utf-8')
 console_out = logging.StreamHandler()
 
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'model')))
+print(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'model')))
 logging.basicConfig(handlers=(file_log, console_out),
                     format='%(asctime)s - %(levelname)s - %(message)s',
                     datefmt='%m.%d.%Y %H:%M:%S',
@@ -62,28 +66,24 @@ class FacebookPostRuner:
     def valdiate_message_by_neuro(self, comments_to_validate, token = "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"):
         ''' валидируем сообщения. Вернется булевый список.'''
         predict_list = predict(comments_to_validate)
-        bool_only = list(map(bool, predict_list))
+        return list(map(bool, predict_list))
 
-        return [elem == "true" for elem in bool_only]
-
-    def only_valid_comments_list(self, comments_lsit, gpt_token = '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'):
+    def only_non_valid_comments_list(self, comments_lsit, gpt_token = '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'):
         ''' Разделил на разные функции для дальнейшего переиспользования '''
         comments_to_validate = [elem["message"] for elem in comments_lsit]
-        logging.info(comments_to_validate)
+        logging.info("not valideted comma" + str(comments_to_validate))
 
         bool_list = []
 
-        for sublist in [comments_to_validate[i:i+5] for i in range(0, len(comments_to_validate), 5)]:
-            logging.info(sublist)
+        for sublist in [comments_to_validate[i:i+20] for i in range(0, len(comments_to_validate), 20)]:
             while True:
                 try:
-                    bool_sublist = self.valdiate_message_by_chat(sublist, gpt_token)
+                    bool_sublist = self.valdiate_message_by_neuro(sublist, gpt_token)
                 except Exception as e:
                     if "Rate limit reached for" in str(e):
                         time.sleep(80)
                     else:
                         raise e
-                logging.info(bool_sublist)
                 if len(sublist) == len(bool_sublist):
                     bool_list += bool_sublist
                     break
@@ -91,23 +91,27 @@ class FacebookPostRuner:
                     bool_list += [bool_sublist[0]]
                     break
 
+        logging.info("bool list of valideted comma" + str(bool_list))
+
         problems = []
         for index in range(len(bool_list)):
-            if not bool_list[index]:
+            if bool_list[index]:
                 problems.append(comments_lsit[index])
-        logging.info(problems)
+
+        logging.info("problem comma")
+        logging.info(str(problems))
 
         return problems
 
     def post_hided_by_list_id(self, comments_lsit = [], hide = False, gpt_token = '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'):
         ''' удаляем комментарии по списку id или просто по id
         можно передавать и не индексированные по id списки, если так будет проще валидировать '''
-        non_valid_comments = self.only_valid_comments_list(comments_lsit, gpt_token)
+        non_valid_comments = self.only_non_valid_comments_list(comments_lsit, gpt_token)
 
         request_list = []
         for elem in non_valid_comments:
           url = f'{self.site}/{elem["id"]}?is_hidden={str(hide).lower()}&' + self.token
-          logging.info(url)
+          logging.info("url " + url)
           req = requests.post(url)
           request_list.append((req.text, elem["id"], elem["message"], req.status_code))
         return request_list
@@ -134,7 +138,7 @@ def process_post_data():
         for page_token in all_pages_tokens:
             fr_page = FacebookPostRuner(page_token)
             for comments_in_page in [elem for elem in fr_page.get_posts_comments() if elem]:
-                logging.info(comments_in_page)
+                logging.info("all comma in page - " + str(comments_in_page))
                 to_req_client.append(fr_page.post_hided_by_list_id(comments_lsit = comments_in_page, hide = False, gpt_token=data["gpt_token"]))
 
         return jsonify({"Succsess": True, "List_of_comments": to_req_client})

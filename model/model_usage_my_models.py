@@ -1,3 +1,5 @@
+import os
+
 from googletrans import Translator
 import logging
 from nltk import PorterStemmer, word_tokenize
@@ -30,10 +32,12 @@ def predict(text_list):
     translatede_text_list= ["hello world! Good product happy love." if elem == "" else elem for elem in translatede_text_list]
     logging.info(translatede_text_list)
 
-    with open('saved_data_no_proc.pkl', 'rb') as file:
+    BASE_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'model')
+
+    with open(os.path.join(BASE_DIR, 'saved_data_no_proc.pkl'), 'rb') as file:
         logging.info(file)
         tokenizer_negative = pickle.load(file)
-    with open('saved_data_toxic_no_proc.pkl', 'rb') as file:
+    with open(os.path.join(BASE_DIR, 'saved_data_toxic_no_proc.pkl'), 'rb') as file:
         tokenizer_toxic = pickle.load(file)
 
     translatede_tokenizer_negative = tokenizer_negative.texts_to_sequences(translatede_text_list)
@@ -44,8 +48,8 @@ def predict(text_list):
     translatede_pad_negative = pad_sequences(translatede_tokenizer_negative, maxlen=max_len)
     translatede_pad_toxic = pad_sequences(translatede_tokenizer_toxic, maxlen=max_len)
 
-    model_negative = load_model("end_model_normal_no_proc.h5")
-    model_toxic = load_model("end_model_normal_toxic_no_proc.h5")
+    model_negative = load_model(os.path.join(BASE_DIR, 'end_model_normal_no_proc.h5'))
+    model_toxic = load_model(os.path.join(BASE_DIR, 'end_model_normal_toxic_no_proc.h5'))
 
     logging.info("go to a function / start loading models")
 
@@ -95,6 +99,6 @@ list_to_predict = ["плохой товар, я разочарован",
                       "मुझे यह बात पसंद है! यह मुझे खुश करता है ।",
                       "¡me encanta esta cosa! me hace feliz"
                   ]
-
-predict(list_to_predict)
-logging.info(([bool(elem)for elem in [1,0,1,1,1,1,1,1,0,1,1,1,1,1,0,0,0,0,0,0,0]]))
+if __name__ == '__main__':
+    liste = predict(list_to_predict)
+    logging.info(([bool(elem) for elem in liste]))
