@@ -138,7 +138,7 @@ def process_post_data():
             fr_page = FacebookPostRuner(page_token)
             for comments_in_page in [elem for elem in fr_page.get_posts_comments() if elem]:
                 logging.info("all comma in page - " + str(comments_in_page))
-                to_req_client.append(fr_page.post_hided_by_list_id(comments_lsit = comments_in_page, hide = False, gpt_token=data["gpt_token"]))
+                to_req_client.append(fr_page.post_hided_by_list_id(comments_lsit = comments_in_page, hide = True, gpt_token=data["gpt_token"]))
 
         return jsonify({"Succsess": True, "List_of_comments": to_req_client})
     except Exception as err:
